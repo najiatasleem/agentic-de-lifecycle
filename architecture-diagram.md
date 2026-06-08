@@ -4,24 +4,23 @@
 
 ```mermaid
 graph TB
-    subgraph "User Interface"
+    subgraph "PRESENTATION LAYER"
+        direction TB
         UI[User Interface]
-        AUTH[Auth/SSO]
+        AUTH[Authentication]
+        RBAC[Authorization]
     end
     
-    subgraph "Orchestration"
+    subgraph "ORCHESTRATION LAYER"
+        direction TB
         ORCH[Orchestrator Agent]
         CB[Circuit Breaker]
         RETRY[Retry Logic]
+        DLQ[Dead Letter Queue]
     end
     
-    subgraph "Data Sources"
-        DB[(Database)]
-        API[(API)]
-        FILES[(Files)]
-    end
-    
-    subgraph "Agent Pipeline"
+    subgraph "AGENT LAYER"
+        direction TB
         INGEST[Extraction Agent]
         EDA[EDA Agent]
         DQ[Quality Agent]
@@ -31,42 +30,39 @@ graph TB
         OBS[Observability Agent]
     end
     
-    subgraph "Error Handling"
-        DLQ[Dead Letter Queue]
-        FALLBACK[Fallback Paths]
-    end
-    
-    subgraph "State Management"
+    subgraph "DATA LAYER"
+        direction TB
         REDIS[(Redis)]
         PG[(PostgreSQL)]
+        KNOW[Knowledge Layer]
+        PARQUET[Parquet]
+        KAFKA[Kafka]
+    end
+    
+    subgraph "INFRASTRUCTURE LAYER"
+        direction TB
+        ENC[Encryption]
+        AUDIT[Audit Log]
         CHECK[Checkpoint]
     end
     
-    subgraph "Knowledge Layer"
-        KNOW[Knowledge Layer]
-    end
-    
-    subgraph "Security"
-        ENC[Encryption]
-        RBAC[RBAC]
-        AUDIT[Audit Log]
-    end
-    
-    subgraph "Data Flow"
-        PARQUET[Parquet]
-        JSON[JSON]
-        KAFKA[Kafka Stream]
-    end
-    
-    subgraph "Output"
+    subgraph "EXTERNAL LAYER"
+        direction TB
+        DB[(Database)]
+        API[(API)]
+        FILES[(Files)]
         TARGET[(Target System)]
     end
     
     UI --> AUTH
-    AUTH --> ORCH
+    AUTH --> RBAC
+    RBAC --> ORCH
+    
     ORCH --> CB
     CB --> RETRY
     RETRY --> INGEST
+    RETRY --> DLQ
+    DLQ --> ORCH
     
     INGEST --> DB
     INGEST --> API
@@ -87,10 +83,6 @@ graph TB
     OBS --> KAFKA
     KAFKA --> TARGET
     
-    RETRY --> DLQ
-    DLQ --> FALLBACK
-    FALLBACK --> ORCH
-    
     INGEST --> REDIS
     EDA --> REDIS
     DQ --> REDIS
@@ -102,8 +94,6 @@ graph TB
     REDIS --> CHECK
     CHECK --> PG
     
-    PG --> ORCH
-    
     EDA --> KNOW
     DQ --> KNOW
     RCA --> KNOW
@@ -112,40 +102,37 @@ graph TB
     OBS --> KNOW
     
     KNOW --> ORCH
+    PG --> ORCH
     
-    UI --> RBAC
-    RBAC --> ORCH
     PARQUET --> ENC
     ENC --> TARGET
     ORCH --> AUDIT
     AUDIT --> PG
     
-    style UI fill:#e1f5ff,stroke:#01579b,stroke-width:2px
-    style AUTH fill:#e1f5ff,stroke:#01579b,stroke-width:2px
-    style ORCH fill:#fff4e1,stroke:#f57f17,stroke-width:2px
-    style CB fill:#fff4e1,stroke:#f57f17,stroke-width:2px
-    style RETRY fill:#fff4e1,stroke:#f57f17,stroke-width:2px
-    style INGEST fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style EDA fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style DQ fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style RCA fill:#fce4ec,stroke:#c62828,stroke-width:2px
-    style OPT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style VAL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style OBS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style DLQ fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style FALLBACK fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style REDIS fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
-    style PG fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
-    style CHECK fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
-    style KNOW fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
-    style ENC fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
-    style RBAC fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
-    style AUDIT fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
-    style PARQUET fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style JSON fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style KAFKA fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style DB fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
-    style API fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
-    style FILES fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
-    style TARGET fill:#e3f2fd,stroke:#0277bd,stroke-width:2px
+    style UI fill:#1e3a8a,stroke:#1e40af,stroke-width:3px,color:#ffffff
+    style AUTH fill:#1e3a8a,stroke:#1e40af,stroke-width:3px,color:#ffffff
+    style RBAC fill:#1e3a8a,stroke:#1e40af,stroke-width:3px,color:#ffffff
+    style ORCH fill:#b45309,stroke:#92400e,stroke-width:3px,color:#ffffff
+    style CB fill:#b45309,stroke:#92400e,stroke-width:3px,color:#ffffff
+    style RETRY fill:#b45309,stroke:#92400e,stroke-width:3px,color:#ffffff
+    style DLQ fill:#b45309,stroke:#92400e,stroke-width:3px,color:#ffffff
+    style INGEST fill:#166534,stroke:#14532d,stroke-width:3px,color:#ffffff
+    style EDA fill:#166534,stroke:#14532d,stroke-width:3px,color:#ffffff
+    style DQ fill:#166534,stroke:#14532d,stroke-width:3px,color:#ffffff
+    style RCA fill:#991b1b,stroke:#7f1d1d,stroke-width:3px,color:#ffffff
+    style OPT fill:#166534,stroke:#14532d,stroke-width:3px,color:#ffffff
+    style VAL fill:#166534,stroke:#14532d,stroke-width:3px,color:#ffffff
+    style OBS fill:#166534,stroke:#14532d,stroke-width:3px,color:#ffffff
+    style REDIS fill:#0369a1,stroke:#075985,stroke-width:3px,color:#ffffff
+    style PG fill:#0369a1,stroke:#075985,stroke-width:3px,color:#ffffff
+    style KNOW fill:#7c3aed,stroke:#5b21b6,stroke-width:3px,color:#ffffff
+    style PARQUET fill:#c2410c,stroke:#9a3412,stroke-width:3px,color:#ffffff
+    style KAFKA fill:#c2410c,stroke:#9a3412,stroke-width:3px,color:#ffffff
+    style ENC fill:#7c3aed,stroke:#5b21b6,stroke-width:3px,color:#ffffff
+    style AUDIT fill:#7c3aed,stroke:#5b21b6,stroke-width:3px,color:#ffffff
+    style CHECK fill:#7c3aed,stroke:#5b21b6,stroke-width:3px,color:#ffffff
+    style DB fill:#0369a1,stroke:#075985,stroke-width:3px,color:#ffffff
+    style API fill:#0369a1,stroke:#075985,stroke-width:3px,color:#ffffff
+    style FILES fill:#0369a1,stroke:#075985,stroke-width:3px,color:#ffffff
+    style TARGET fill:#0369a1,stroke:#075985,stroke-width:3px,color:#ffffff
 ```
