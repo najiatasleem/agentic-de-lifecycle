@@ -3,14 +3,14 @@
 ## Multi-Agent Agentic Flow
 
 ```mermaid
-graph TB
-    subgraph "User Layer"
-        USER[User Input/Feedback]
+graph LR
+    subgraph "User Interface"
+        USER[User]
         DASH[Dashboard]
     end
     
     subgraph "Orchestration"
-        COORD[Agent Coordinator]
+        COORD[Coordinator]
         WORKFLOW[Workflow Engine]
         STATE[State Manager]
     end
@@ -21,18 +21,22 @@ graph TB
         FILES[(Files)]
     end
     
-    subgraph "Agent Pipeline"
-        EXTRACT[Data Extraction Agent]
-        VALIDATE1[Validator]
-        RECHECK1[Recheck Controller]
-        
-        QUALITY[Data Quality Agent]
-        VALIDATE2[Validator]
-        RECHECK2[Recheck Controller]
-        
-        TRANSFORM[Transformation Agent]
-        VALIDATE3[Validator]
-        RECHECK3[Recheck Controller]
+    subgraph "Extraction Stage"
+        EXTRACT[Extraction Agent]
+        V1[Validator]
+        R1[Recheck]
+    end
+    
+    subgraph "Quality Stage"
+        QUALITY[Quality Agent]
+        V2[Validator]
+        R2[Recheck]
+    end
+    
+    subgraph "Transformation Stage"
+        TRANSFORM[Transform Agent]
+        V3[Validator]
+        R3[Recheck]
     end
     
     subgraph "Storage"
@@ -54,29 +58,28 @@ graph TB
     EXTRACT --> API
     EXTRACT --> FILES
     
-    EXTRACT --> VALIDATE1
-    VALIDATE1 -->|Pass| QUALITY
-    VALIDATE1 -->|Fail| RECHECK1
-    RECHECK1 -->|Adjust Params| EXTRACT
-    RECHECK1 -->|Max Retries| DASH
+    EXTRACT --> V1
+    V1 -->|Pass| QUALITY
+    V1 -->|Fail| R1
+    R1 --> EXTRACT
+    R1 --> DASH
     
-    QUALITY --> VALIDATE2
-    VALIDATE2 -->|Pass| TRANSFORM
-    VALIDATE2 -->|Fail| RECHECK2
-    RECHECK2 -->|Adjust Params| QUALITY
-    RECHECK2 -->|Max Retries| DASH
+    QUALITY --> V2
+    V2 -->|Pass| TRANSFORM
+    V2 -->|Fail| R2
+    R2 --> QUALITY
+    R2 --> DASH
     
-    TRANSFORM --> VALIDATE3
-    VALIDATE3 -->|Pass| TARGET
-    VALIDATE3 -->|Fail| RECHECK3
-    RECHECK3 -->|Adjust Params| TRANSFORM
-    RECHECK3 -->|Max Retries| DASH
+    TRANSFORM --> V3
+    V3 -->|Pass| TARGET
+    V3 -->|Fail| R3
+    R3 --> TRANSFORM
+    R3 --> DASH
     
-    DASH -->|Feedback| WORKFLOW
+    DASH --> WORKFLOW
     STATE --> REDIS
     STATE --> PG
     
-    WORKFLOW --> STATE
     EXTRACT --> STATE
     QUALITY --> STATE
     TRANSFORM --> STATE
@@ -86,10 +89,10 @@ graph TB
     style EXTRACT fill:#e8f5e9
     style QUALITY fill:#e8f5e9
     style TRANSFORM fill:#e8f5e9
-    style VALIDATE1 fill:#fce4ec
-    style VALIDATE2 fill:#fce4ec
-    style VALIDATE3 fill:#fce4ec
-    style RECHECK1 fill:#fff4e1
-    style RECHECK2 fill:#fff4e1
-    style RECHECK3 fill:#fff4e1
+    style V1 fill:#fce4ec
+    style V2 fill:#fce4ec
+    style V3 fill:#fce4ec
+    style R1 fill:#fff4e1
+    style R2 fill:#fff4e1
+    style R3 fill:#fff4e1
 ```
