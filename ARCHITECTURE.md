@@ -187,10 +187,11 @@ Return final output
 - **API Layer**: FastAPI or Flask
 
 ### Agent Implementation
-- **Language**: Python
+- **Language**: Python 3.10+
 - **Data Processing**: Pandas, PySpark
 - **Database**: SQLAlchemy, psycopg2
 - **Validation**: Great Expectations or Pandera
+- **LLM Integration**: OpenAI API, LangChain, or LlamaIndex
 
 ### UI/Dashboard
 - **Frontend**: Streamlit or React
@@ -202,3 +203,58 @@ Return final output
 - **Orchestration**: Kubernetes
 - **Monitoring**: Prometheus + Grafana
 - **Logging**: ELK Stack or Loki
+
+### Component-Specific Technologies
+
+#### Orchestrator Agent
+- **Workflow Engine**: Airflow DAGs or Prefect Flows
+- **Task Scheduling**: Celery or Dask
+- **Decision Engine**: Rule-based or LLM-powered
+
+#### Extraction Agent
+- **Database Connectors**: SQLAlchemy, psycopg2, pyodbc
+- **API Clients**: requests, httpx
+- **File Processing**: pandas, openpyxl, xlrd
+- **Schema Detection**: pandas-profiling, data-diff
+
+#### EDA Agent (Built)
+- **Profiling**: pandas-profiling, ydata-profiling
+- **Statistics**: scipy, statsmodels
+- **Visualization**: Plotly, Seaborn
+- **Current Implementation**: Streamlit + Pandas
+
+#### DQ Agent
+- **Quality Rules**: Great Expectations, Soda
+- **Anomaly Detection**: PyOD, isolation-forest
+- **Scoring**: Custom metrics + ML models
+- **Alerting**: PagerDuty, Slack integration
+
+#### RCA Agent
+- **Query Engine**: SQL, pandas
+- **Correlation Analysis**: scipy, networkx
+- **Time Series Analysis**: statsmodels, Prophet
+- **Pattern Recognition**: scikit-learn, TensorFlow
+
+#### Optimization Agent
+- **Schema Recommendation**: Custom rules + ML
+- **Query Optimization**: SQL parsing, query plan analysis
+- **Cardinality Analysis**: pandas, numpy
+- **Transformation Suggestions**: dbt, SQLMesh
+
+#### Validation Agent
+- **Data Comparison**: data-diff, pandas
+- **Constraint Checking**: Great Expectations
+- **Reconciliation**: Custom reconciliation logic
+- **Audit Logging**: Structured logging
+
+#### Observability Agent
+- **Metrics Collection**: Prometheus client
+- **Anomaly Detection**: Prometheus Alertmanager
+- **Trend Analysis**: Grafana dashboards
+- **Alerting**: Alertmanager, custom notifications
+
+#### Knowledge Layer
+- **Vector Database**: Pinecone, Weaviate, or pgvector
+- **Embeddings**: OpenAI Embeddings or Sentence Transformers
+- **Retrieval**: LangChain Vector Store
+- **Storage**: PostgreSQL with pgvector extension
