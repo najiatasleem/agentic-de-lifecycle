@@ -310,15 +310,20 @@ Orchestrator →
 
 ## Implementation Phases
 
-### Phase 1 (Now – already done)
-- EDA Agent ✅
-- Basic quality checks ✅
+### Phase 1 (CURRENT - Built)
+- EDA Agent ✅ (rule-based Python/Pandas, no LLM)
+- Basic quality checks ✅ (rule-based thresholds)
+- Streamlit UI ✅
+- Database + File upload modes ✅
 
-### Phase 2 (Next – high impact)
-- Orchestrator Agent ✅
-- Decision Engine ✅
-- RCA Agent ✅
-- Self-Routing Logic ✅
+**Status:** Rule-based only, no decision engine, no LLM integration
+
+### Phase 2 (NEXT - High Impact)
+- Orchestrator Agent (LangGraph)
+- Decision Engine (hybrid rule-based + LLM)
+- RCA Agent
+- Self-Routing Logic
+- Human-in-the-Loop UI
 
 **This delivers true agentic behavior**
 
