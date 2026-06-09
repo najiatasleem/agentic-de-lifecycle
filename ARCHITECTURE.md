@@ -13,6 +13,39 @@ Unlike deterministic pipelines, this system dynamically routes between EDA, data
 If flow is: `Step1 → Step2 → Step3` → This is NOT agentic  
 If flow is: `Step1 → Decision → [Option A, Option B, Option C] → Next step based on decision` → This IS agentic
 
+## What is NOT Agentic (Boundary Clarification)
+
+**We use agents only when needed. These cases are NOT agentic:**
+
+**Case 1: Simple Detection → Report Only**
+```
+Null % = 5% → Report → Stop
+```
+No decision required, no ambiguity → Rule-based execution
+
+**Case 2: No Ambiguity → Direct Rule Execution**
+```
+Freshness delay > SLA → Alert → Stop
+```
+Single clear action → No routing needed
+
+**Case 3: Single Next Step → No Decision Point**
+```
+Schema change detected → Log change → Stop
+```
+Predetermined sequence → Not agentic
+
+**Case 4: Known Pattern → Apply Stored Decision**
+```
+Known sparse column (80-90% null) → Ignore → Stop
+```
+Pattern match → No decision needed
+
+**Why this distinction matters:**
+- Prevents over-engineering simple cases
+- Ensures agentic behavior is used only where it adds value
+- Maintains system efficiency and predictability
+
 ## Trigger Points
 
 | Trigger Type | Example | Entry Point |
@@ -130,6 +163,35 @@ Path 4: Historical Agent (analyze trends over time)
 - Compare with upstream tables
 - Export insights to documentation
 - Feed into pipeline monitoring systems
+
+### Output Actions (Explicit Integration)
+
+**The output feeds into investigation workflow, not just display:**
+
+**Action 1: Manual Investigation**
+- User reviews findings
+- User runs follow-up queries
+- User documents root cause
+
+**Action 2: Trigger Pipeline Checks**
+- Validate upstream data availability
+- Check pipeline execution logs
+- Verify transformation logic
+
+**Action 3: Feed into Monitoring System**
+- Push quality metrics to Prometheus/Grafana
+- Set up alerts for recurring issues
+- Track trends over time
+
+**Action 4: Export to Documentation**
+- Auto-generate Confluence reports
+- Update data quality dashboards
+- Document known patterns
+
+**Action 5: Optional RCA Deep Dive**
+- User can trigger full RCA
+- User can request additional analysis
+- User can share findings with team
 
 ### Integration Points
 
@@ -318,21 +380,33 @@ Orchestrator →
 
 **Status:** Rule-based only, no decision engine, no LLM integration
 
-### Phase 2 (NEXT - High Impact)
+### Phase 2 (NEXT - High Impact - Scoped for Implementability)
 - Orchestrator Agent (LangGraph)
 - Decision Engine (hybrid rule-based + LLM)
-- RCA Agent
-- Self-Routing Logic
-- Human-in-the-Loop UI
+- RCA Agent (minimal: time trend, null spike detection)
+- Metadata Agent (optional: Alation lookup)
+- Self-Routing Logic (basic: EDA → Decision → RCA/Metadata)
+- Human-in-the-Loop UI (basic: approve/reject/choose)
 
-**This delivers true agentic behavior**
+**This delivers true agentic behavior with controlled scope**
+
+**Phase 2 Scope Limitations:**
+- RCA: Time trend + null spike only (not full correlation analysis)
+- Metadata: Alation lookup only (not full lineage)
+- Multi-path: RCA + Metadata only (not Lineage + Historical)
+- Knowledge: Pattern storage only (not full learning system)
+
+**Why this scope:**
+- Keeps implementation realistic for first agentic version
+- Focuses on core decision-making capability
+- Enables validation of agentic approach before expansion
 
 ### Phase 3
 - Upstream Validation Agent
-- Metadata Agent (Alation integration)
-- DDL-TD Table Relationship Mapping
-- Multi-Path Execution
-- Knowledge Layer Enhancement
+- Full DDL-TD Table Relationship Mapping
+- Full Multi-Path Execution (Lineage + Historical)
+- Knowledge Layer Enhancement (learning system)
+- Advanced conflict handling
 
 ### Phase 4
 - Advanced integration (Alerting, Documentation, CI/CD)
@@ -442,6 +516,99 @@ Input (EDA output) →
    Log decision →
    Feed into knowledge layer
 ```
+
+### Stop Conditions
+
+**The system must explicitly define when to stop investigation:**
+
+**Stop Condition 1: High Confidence, No Conflict**
+```
+if confidence > 0.85 AND no conflicting_signals:
+    stop and return result
+```
+
+**Stop Condition 2: Max Depth Reached**
+```
+if rca_iterations >= 2:
+    stop and return current findings
+    (prevent infinite investigation loops)
+```
+
+**Stop Condition 3: Path Convergence**
+```
+if all_paths_converge_on_same_conclusion:
+    stop and return consensus result
+```
+
+**Stop Condition 4: Human Intervention Required**
+```
+if confidence < 0.6 OR conflicting_signals OR high_business_impact:
+    stop and wait for human decision
+```
+
+**Stop Condition 5: Known Pattern Match**
+```
+if pattern_matches_knowledge_layer AND high_pattern_confidence:
+    stop and apply known decision
+```
+
+### Conflict Handling
+
+**When multiple paths disagree, the system must resolve conflicts:**
+
+**Conflict Detection:**
+```python
+if conflicting_signals:
+    conflict_score = calculate_conflict_severity(
+        rca_confidence,
+        metadata_confidence,
+        lineage_confidence,
+        historical_confidence
+    )
+```
+
+**Resolution Strategy:**
+
+**Strategy 1: Weighted Combination (Low Conflict)**
+```
+if conflict_score < 0.3:
+    final_decision = weighted_average(all_path_results)
+    combined_confidence = average(all_confidences)
+```
+
+**Strategy 2: High-Confidence Path Override (Medium Conflict)**
+```
+if conflict_score < 0.6:
+    highest_confidence_path = max(paths, key=confidence)
+    if highest_confidence_path.confidence > 0.8:
+        final_decision = highest_confidence_path.result
+        combined_confidence = highest_confidence_path.confidence
+```
+
+**Strategy 3: Human Escalation (High Conflict)**
+```
+if conflict_score >= 0.6:
+    escalate_to_human(
+        conflicting_paths=all_path_results,
+        conflict_reason="multiple_paths_disagree",
+        recommended_action="manual_review"
+    )
+    stop and wait for human decision
+```
+
+**Conflict Scenarios:**
+
+**Scenario 1: RCA says "upstream issue", Metadata says "schema change"**
+- Conflict score: 0.7 (high)
+- Action: Escalate to human with both findings
+
+**Scenario 2: RCA says "null spike", Historical says "seasonal pattern"**
+- Conflict score: 0.4 (medium)
+- Action: Override with higher confidence path if > 0.8
+
+**Scenario 3: All paths agree on "data quality issue"**
+- Conflict score: 0.0 (none)
+- Action: Combine insights, high confidence
 
 ## Flow + Boundaries
 
