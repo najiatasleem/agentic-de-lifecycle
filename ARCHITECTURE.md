@@ -368,6 +368,292 @@ Orchestrator →
 - **Traditional Tools:** Static profiling and rule-based checks
 - **Value:** Investigates root causes, not just reports symptoms
 
+## Decision Engine Implementation
+
+### Approach: Hybrid (Rule-Based + LLM-Powered)
+
+**Rationale:** Rules provide deterministic decisions for clear cases; LLM handles ambiguity and context-aware decisions.
+
+### Decision Structure
+
+```python
+decision = {
+    "trigger": "high_null",
+    "options": ["ignore", "dq_only", "rca", "upstream_check"],
+    "chosen": "rca",
+    "confidence": 0.82,
+    "reason": "high_null + high_usage_column + critical_business_impact",
+    "timestamp": "2026-06-09T10:00:00Z",
+    "agent": "decision_engine"
+}
+```
+
+### Decision Thresholds
+
+| Metric | Threshold | Action |
+|--------|-----------|--------|
+| Null % | > 90% | Ignore (known sparse) |
+| Null % | 50-90% + critical column | RCA |
+| Null % | 50-90% + non-critical | Report only |
+| Duplicates | > 5% | PK validation |
+| Freshness delay | > 4 hours | Ingestion check |
+| Freshness delay | > SLA | Alert |
+
+### Decision Logging
+
+**What to log:**
+- Trigger condition
+- Available options
+- Chosen option
+- Confidence score
+- Reasoning
+- Timestamp
+- Agent responsible
+
+**Why:** Audit trail, explainability, learning for knowledge layer
+
+### Confidence Scoring
+
+**Rule-based decisions:** Confidence = 1.0 (deterministic)
+
+**LLM-based decisions:** Confidence = 0.0-1.0 (based on:
+- Pattern match strength
+- Historical precedent
+- Data quality signal clarity
+- Business context availability)
+
+**Low confidence (< 0.6):** Trigger human-in-the-loop
+
+### Decision Engine Flow
+
+```
+Input (EDA output) →
+   Check rules →
+      If match → execute rule (confidence = 1.0)
+      If no match → query LLM →
+         LLM returns decision + confidence
+         If confidence < 0.6 → escalate to human
+         Else → execute decision
+   Log decision →
+   Feed into knowledge layer
+```
+
+## Flow + Boundaries
+
+### Defined Flow
+
+```
+Trigger (User/Query/Event/Scheduled) →
+   Orchestrator →
+      EDA Agent →
+         Decision Engine →
+            Multi-Path Execution (RCA + Metadata + Lineage + Historical) →
+               Combine Insights →
+                  Knowledge Layer →
+                     Final Recommendation →
+                        User Action
+```
+
+### Agent Boundaries (WILL vs WON'T DO)
+
+#### ✅ Agents WILL Do
+- Detect issues (nulls, duplicates, schema changes, freshness delays)
+- Prioritize issues based on severity and business impact
+- Trigger deeper analysis (RCA, upstream validation, metadata lookup)
+- Suggest next steps and recommendations
+- Learn from historical patterns to improve decision-making
+- Log all decisions with reasoning
+
+#### ❌ Agents Will NOT Do
+- Automatically fix data or modify pipelines
+- Create tickets or work on fixes (Phase 1)
+- Make irreversible changes to production systems
+- Access systems without proper authorization
+- Override human decisions without explicit approval
+- Delete or drop data
+- Modify schema definitions
+- Execute DDL statements
+
+### Boundary Enforcement
+
+**Implementation:**
+- Permission checks before any system modification
+- Read-only database access for analysis
+- Explicit approval required for write operations
+- Sandbox environment for testing recommendations
+- Audit trail for all actions
+
+## Multi-Path Execution
+
+### Parallel Execution Strategy
+
+**When:** Ambiguity exists, high business impact, or confidence < 0.8
+
+**Paths:**
+1. **RCA Agent:** Investigate root cause (time trends, correlations)
+2. **Lineage Agent:** Check upstream dependencies (DDL-TD mapping)
+3. **Metadata Agent:** Lookup business context (Alation)
+4. **Historical Agent:** Analyze patterns over time (knowledge layer)
+
+### Execution Flow
+
+```
+Decision: "Critical issue detected, low confidence" →
+   Trigger multi-path execution →
+      Parallel execution:
+         Path 1: RCA Agent (investigate)
+         Path 2: Lineage Agent (upstream)
+         Path 3: Metadata Agent (context)
+         Path 4: Historical Agent (patterns)
+      Wait for all paths (timeout: 5 min) →
+      Combine insights (weighted by confidence) →
+      Generate final recommendation
+```
+
+### Result Combination Logic
+
+```python
+combined_result = {
+    "rca_insights": {...},
+    "lineage_insights": {...},
+    "metadata_insights": {...},
+    "historical_insights": {...},
+    "final_recommendation": "trigger_rca",
+    "combined_confidence": 0.87,
+    "conflicting_signals": [],
+    "resolution_strategy": "weighted_average"
+}
+```
+
+### Timeout Handling
+
+- Individual path timeout: 2 minutes
+- Overall execution timeout: 5 minutes
+- Fallback: Proceed with available insights, flag missing paths
+
+## Lightweight Knowledge Layer
+
+### What to Store (Phase 1)
+
+**Past Decisions:**
+- Decision trigger
+- Chosen option
+- Outcome (user approved/rejected)
+- Effectiveness score
+
+**Common Patterns:**
+- Known sparse columns (e.g., add_cntct_id: 80-90% null)
+- Known seasonal patterns
+- Known upstream dependencies
+
+**Known Issues:**
+- Recurring problems
+- Resolution history
+- Team ownership
+
+### Storage Schema
+
+```python
+knowledge_entry = {
+    "type": "column_pattern",
+    "key": "table_name.column_name",
+    "pattern": "high_null",
+    "typical_range": [0.8, 0.9],
+    "last_observed": "2026-06-09T10:00:00Z",
+    "decision_override": "do_not_trigger_rca",
+    "confidence": 0.95
+}
+```
+
+### Retrieval and Usage
+
+**Query:**
+```python
+pattern = knowledge_layer.lookup("table_name.column_name")
+if pattern and pattern.typical_range.contains(current_null_pct):
+    decision = "ignore"  # Known pattern
+else:
+    decision = "investigate"  # New pattern
+```
+
+### Learning Mechanism
+
+**Explicit Learning:**
+- User feedback on recommendations
+- Manual overrides recorded
+- Pattern updates based on new data
+
+**Implicit Learning:**
+- Decision outcome tracking
+- Effectiveness scoring
+- Pattern drift detection
+
+## Human-in-the-Loop Integration
+
+### Trigger Conditions
+
+**Escalate to human when:**
+- Decision confidence < 0.6
+- Multiple conflicting paths
+- High business impact (critical table)
+- Unknown pattern detected
+- User explicitly requests review
+
+### UI Presentation
+
+```
+⚠️ Decision Ambiguity Detected
+
+Issue: add_cntct_id has 93% null
+Confidence: 0.45 (below threshold)
+
+Available Options:
+[ ] Ignore (known sparse column)
+[ ] Report only (flag as risk)
+[ ] Trigger RCA (investigate root cause)
+[ ] Check upstream tables (validate dependencies)
+
+Recommendation: Trigger RCA
+Reason: High null % + critical column + unknown pattern
+
+[Approve Recommendation]  [Select Option]  [Add Note]
+```
+
+### Feedback Loop
+
+**User Action → System Learning:**
+- User selects option → Record decision
+- User adds note → Store as context
+- User approves → Increase confidence threshold
+- User rejects → Decrease confidence, trigger re-evaluation
+
+### Escalation Paths
+
+**Level 1: UI Decision**
+- User chooses from options
+- System executes immediately
+
+**Level 2: Team Review**
+- Critical issue, high ambiguity
+- Route to data engineering team
+- SLA: 4 hours response
+
+**Level 3: Management Escalation**
+- Production incident
+- Business impact > threshold
+- Route to management with full context
+
+### Approval Workflow
+
+```
+Agent decision →
+   If confidence >= 0.8 → Auto-approve
+   If confidence < 0.8 → Human review →
+      User approves → Execute
+      User rejects → Re-evaluate with new context
+      User modifies → Execute with modification
+```
+
 ## Technology Stack
 
 ### Core Framework
